@@ -1,0 +1,34 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<stdbool.h>
+#include<string.h>
+#include<ctype.h>
+#include<math.h>
+#include <sys/types.h>
+#include<sys/stat.h>
+#include <unistd.h>
+#include <dirent.h>
+#include<pthread.h>
+#include <errno.h>
+#include <netdb.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/un.h>
+#include <sys/ioctl.h>
+#include <sys/wait.h>
+#include <sys/select.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <signal.h>
+
+
+
+
+struct Account{
+
+	char name[255];
+	double balance;
+	int inSession;
+	struct Account* next;
+
+};
