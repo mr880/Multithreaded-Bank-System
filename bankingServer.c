@@ -20,6 +20,26 @@ int find_account_by_name(char* name)
 
 	return 0;
 }
+
+int withdraw(double ammount, char* name)
+{
+	struct Account* temp = NULL;
+	temp = head;
+	printf("NAME: %s\n", name);
+	while(temp != NULL)
+	{
+		if(strcmp(temp->name, name) == 0)
+			break;
+
+		temp = temp->next;
+	}
+	if((temp->balance - ammount) < 0)
+		return -1;
+
+	temp->balance -= ammount;
+	return 0;
+}
+
 void deposit(double ammount, char* name)
 {
 	struct Account* temp = NULL;
@@ -162,7 +182,25 @@ void* client_handler(char* hi)
 				}
 				else if(strncmp(newBuffer,"withdraw", 8) == 0)
 				{
-					printf("withdraw\n");
+					char* charAmount = &newBuffer[8];
+					
+					double ammount = atof(charAmount);
+
+					int withdraw_check = withdraw(ammount, heapname);
+
+					if(withdraw_check == -1)
+					{
+						bzero(buffer, 256);
+						strcat(buffer, "\nNot enough funds in account.\n");
+						send(client_socket,buffer, sizeof(buffer), 0);
+						prompt_serve_menu();
+						continue;
+					}
+					bzero(buffer, 256);
+					strcat(buffer, "\nWithdrew funds.\n");
+					send(client_socket,buffer, sizeof(buffer), 0);
+					
+					
 				}
 				else if(strncmp(newBuffer,"query", 5) == 0)
 				{
