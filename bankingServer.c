@@ -151,7 +151,7 @@ void* client_handler(char* hi)
 				if(strncmp(newBuffer,"deposit", 7) == 0)
 				{
 					char* charAmount = &newBuffer[8];
-					printf("++++++%s\n", charAmount);
+					
 					double ammount = atof(charAmount);
 					deposit(ammount, heapname);
 					
