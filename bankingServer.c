@@ -6,7 +6,7 @@ pthread_t* ts;
 
 struct Account* head = NULL;
 
-int find_account_by_name(char* name)
+int find_account_by_name(char* name, int active)
 {
 	struct Account* temp = NULL;
 	temp = head;
@@ -14,7 +14,10 @@ int find_account_by_name(char* name)
 	while(temp != NULL)
 	{
 		if(strcmp(temp->name, name) == 0)
+		{
+			temp->inSession = active;
 			return 1;
+		}
 		temp = temp->next;
 	}
 
@@ -134,7 +137,7 @@ void* client_handler(char* hi)
 		{
 			char* name = &buffer[7];
 			printf("Creating %s", name);
-			int check = find_account_by_name(name);
+			int check = find_account_by_name(name, 0);
 			if(check == 0)
 			{
 				add_account(name);
@@ -162,7 +165,7 @@ void* client_handler(char* hi)
 			char* heapname = (char*)malloc(sizeof(name));
 			memcpy(heapname, name, strlen(name) + 1);
 			//buffer[0] = '\0';
-			int check = find_account_by_name(name);
+			int check = find_account_by_name(name, 1);
 			//printf("Serving %s", name);
 			if(check == 1)
 			{
@@ -232,10 +235,12 @@ void* client_handler(char* hi)
 				}
 				else if(strncmp(newBuffer,"end", 3) == 0)
 				{
+					int end = find_account_by_name(heapname, 0);
 					bzero(buffer, 256);
 					strcat(buffer, "\nExiting Serve Session");
 					send(client_socket,buffer, sizeof(buffer), 0);
 					printf("end\n");
+
 					break;
 				}
 				else
@@ -248,7 +253,9 @@ void* client_handler(char* hi)
 		
 		else if(strncmp(buffer,"quit", 4) == 0)
 		{
-			printf("quit\n");
+			bzero(buffer, 256);
+			strcat(buffer, "quit");
+			send(client_socket,buffer, sizeof(buffer), 0);
 			break;
 		}
 		else

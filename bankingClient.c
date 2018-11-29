@@ -39,32 +39,21 @@ void* send_user_commands()
 {
     char buff[256] = {0};
     //strcat(buff, "Sending from Client");
-    printf("------------------------------------\n");
-    printf("      Welcome to Server-Bank!!\n");
-    printf("------------------------------------\n\n");
+    printf("------------------------------------------\n");
+    printf("     Welcome to Multithreaded-Bank\n");
+    printf("------------------------------------------\n\n");
     while(1)
     {
-        //prompt user here
-        // printf("Enter input from list: \n");
-        // printf("-\"create\"\n");
-        // printf("-\"serve\"\n");
-        // printf("-\"deposit\"\n");
-        // printf("-\"withdraw\"\n");
-        // printf("-\"query\"\n");
-        // printf("-\"end\"\n");
-        // printf("-\"quit\"\n");
-
+       
         if(read(0, buff, 255) < 0)
             write(2, "An error occurred in the read.\n", 31);
         
 
-        //char* newbuff = trimwhitespace(buff);
-        //printf("newbuff: %s\n", newbuff);
-        if(strncmp(buff, "quit", 4) == 0)
-        {
-            printf("Disconnecting from the server. Ending client process.\n");
-            exit_func();
-        }
+        // if(strncmp(buff, "quit", 4) == 0)
+        // {
+        //     printf("Disconnecting from the server. Ending client process.\n");
+        //     exit_func();
+        // }
 
 
         write(network_socket, buff, sizeof(buff));
@@ -79,7 +68,18 @@ void* outputFromServer()
 
     while(recv(network_socket, buff, sizeof(buff), 0) > 0)
     {
-        printf("%s\n", buff);
+        if(strncmp(buff, "quit", 4) == 0)
+        {
+            printf("\nDisconnecting from the server. Ending client process.\n");
+            exit_func();
+        }
+        else
+        {
+            printf("%s\n", buff);
+        }
+        
+
+
 
     }
     pthread_exit(NULL);
