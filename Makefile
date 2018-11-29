@@ -1,4 +1,5 @@
 default:  bankingServer.c
-	gcc -o bankingServer bankingServer.c -pthread
+	gcc -o server bankingServer.c -pthread
+	gcc -o client bankingClient.c -pthread
 clean:
 	$(RM) bankinServer *.o *~

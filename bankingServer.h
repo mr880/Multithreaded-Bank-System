@@ -32,3 +32,11 @@ struct Account{
 	struct Account* next;
 
 };
+
+struct socket{
+
+	int client_socket;
+	int my_num;
+
+};
+
