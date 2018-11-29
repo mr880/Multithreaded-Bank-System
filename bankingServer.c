@@ -21,6 +21,25 @@ int find_account_by_name(char* name)
 	return 0;
 }
 
+double get_current_balance(char* name)
+{
+	struct Account* temp = NULL;
+	temp = head;
+	printf("NAME: %s\n", name);
+	while(temp != NULL)
+	{
+		if(strcmp(temp->name, name) == 0)
+			break;
+
+		temp = temp->next;
+	}
+
+	char buffer[256] = {0};
+	sprintf(buffer, "%.5f", temp->balance);
+	send(client_socket,buffer, sizeof(buffer), 0);
+	return temp->balance;
+}
+
 int withdraw(double ammount, char* name)
 {
 	struct Account* temp = NULL;
@@ -96,7 +115,7 @@ void prompt_serve_menu()
 {
 	char buff[256] = {0};
 
-	strcat(buff, "------Serve Menu------\n1. deposit <amount (double)>\n2. withdraw <amount (double)>\n3. end\n---------------------");
+	strcat(buff, "------Serve Menu------\n1. deposit <amount (double)>\n2. withdraw <amount (double)>\n3. query\n4. end\n---------------------");
 
 	send(client_socket, buff, sizeof(buff), 0);
 }
@@ -199,12 +218,17 @@ void* client_handler(char* hi)
 					bzero(buffer, 256);
 					strcat(buffer, "\nWithdrew funds.\n");
 					send(client_socket,buffer, sizeof(buffer), 0);
-					
+
 					
 				}
 				else if(strncmp(newBuffer,"query", 5) == 0)
 				{
-					printf("query\n");
+					bzero(buffer, 256);
+					strcat(buffer, "\nBalance: ");
+					send(client_socket,buffer, sizeof(buffer), 0);
+
+					double balance = get_current_balance(heapname);
+					
 				}
 				else if(strncmp(newBuffer,"end", 3) == 0)
 				{
