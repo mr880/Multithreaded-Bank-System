@@ -40,3 +40,9 @@ struct socket{
 
 };
 
+struct _tids
+{
+	int tid;
+	struct _tids *next;
+};
+typedef struct _tids tids;
