@@ -472,12 +472,21 @@ int main(int argc, char* argv[])
 {
 	system("clear");
 
+	
+	
+
 	signal(SIGINT, disconnected);
 
 	pthread_t server_thread;
 
 	pthread_create(&server_thread, NULL, server_handler, (void*)argv[1]);
 
+	signal(SIGALRM, print_accounts);
+	//schedule the first alarm
+	alarm(15);
+
+	while(1)
+		pause();
 	
 	pthread_join(server_thread, NULL);
 
