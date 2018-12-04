@@ -143,7 +143,7 @@ double withdraw(double ammount, char* name)
 		temp = temp->next;
 	}
 	if((temp->balance - ammount) < 0)
-		return -1;
+		return -1.1;
 	pthread_mutex_lock(&lock);
 	temp->balance -= ammount;
 	pthread_mutex_unlock(&lock);
@@ -281,7 +281,7 @@ void* client_handler(void* fd)
 				sleep(1);
 				continue;
 			}
-			
+
 			int active = make_active(storeName);
 	
 			if(active == 0)
@@ -336,8 +336,17 @@ void* client_handler(void* fd)
 					char* amount = &buffer[9];
 					float new_amount = atof(amount);
 					double newbalance = withdraw(new_amount, storeName);
+
+					if(newbalance == -1.1)
+					{
+						write(newfd, "** Server: Insufficient funds **\n", 33);
+						bzero(buffer, 255);
+						sleep(1);
+						continue;			
+					}
 					printf("Withdrew %f from account \"%s\"\n", new_amount, storeName );
 					write(newfd, "** Server: Withdrew funds **\n", 30);
+					bzero(buffer, 255);
 					sleep(1);					
 				}
 				else if(strncmp(buffer, "query", 5) == 0 )
