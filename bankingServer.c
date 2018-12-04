@@ -304,7 +304,7 @@ void* client_handler(void* fd)
 						make_inactive(storeName);
 						pthread_mutex_unlock(&lock);
 						write(newfd, "** Server: Session was ended **\n", 35);
-						//bzero(buffer, 255);
+						bzero(buffer, 255);
 						sleep(1);
 						break;
 				}
@@ -313,14 +313,18 @@ void* client_handler(void* fd)
 					char* amount = &buffer[7];
 					float new_amount = atof(amount);
 					deposit(new_amount, storeName);
+					write(newfd, "** Server: Deposited funds **\n", 30);
 					bzero(buffer, 255);
+					sleep(1);
 				}
 				else if(strncmp(buffer, "withdraw ", 9) == 0)
 				{
 					char* amount = &buffer[9];
 					float new_amount = atof(amount);
 					double newbalance = withdraw(new_amount, storeName);
-					printf("Withdrew %f from account \"%s\"\n", new_amount, storeName );					
+					printf("Withdrew %f from account \"%s\"\n", new_amount, storeName );
+					write(newfd, "** Server: Withdrew funds **\n", 30);
+					sleep(1);					
 				}
 				else if(strncmp(buffer, "query", 5) == 0 )
 				{
@@ -328,6 +332,7 @@ void* client_handler(void* fd)
 					bzero(buffer, 255);
 					sprintf(buffer, "Current Balance: %.2f", balance);
 					write(newfd, buffer, 255);
+					sleep(2);
 				}
 				bzero(buffer, 255);
 				strcat(buffer, "------Serve Menu------\n1. deposit <amount (double)>\n2. withdraw <amount (double)>\n3. query\n4. end\n---------------------");
