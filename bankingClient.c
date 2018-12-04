@@ -49,11 +49,16 @@ void* outputFromServer()
 
     while(recv(network_socket, buff, sizeof(buff), 0) > 0)
     {
-       
+        system("clear");
+        
+        
+    
+        if(strncmp(buff, "Quitting..", 10) == 0)
+        {
+            exit_func();
+        }
         printf("%s\n", buff);
-        
         bzero(buff,256);
-        
     }
     pthread_exit(NULL);
 

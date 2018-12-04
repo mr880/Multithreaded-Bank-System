@@ -19,6 +19,48 @@ void error(char *msg)
 	
 }
 
+char* trim_newline(char* input)
+{
+	int i = 0; 
+
+	while(input[i] != '\n')
+	{
+		if(input[i] == '\0')
+		{
+			break;
+		} 
+		//printf("(%c)", name[i]);
+		i++;
+	}
+	input[i] = '\0';
+
+	return input;
+}
+
+void make_inactive(char* name)
+{
+
+	struct Account* temp = NULL;
+	temp = head;
+
+	while(temp != NULL)
+	{
+		if(strcmp(temp->name, name) == 0 )
+		{
+			if(temp->inSession == 1)
+			{
+				temp->inSession = 0;
+			}
+			else
+			{
+				printf("%s was not in session, returning...\n", name);
+				return;
+			}	
+		}
+		temp = temp->next;
+	}
+	printf("%s is out of session.\n", name);
+}
 
 void make_active(char* name)
 {
@@ -68,13 +110,14 @@ double get_current_balance(char* name)
 	}
 
 	char buffer[256] = {0};
-	sprintf(buffer, "%.5f", temp->balance);
+	sprintf(buffer, "%.2f", temp->balance);
 	//send(client_socket,buffer, sizeof(buffer), 0);
-	write(client_socket, buffer, sizeof(buffer));
+	printf("Ballance: %f\n", temp->balance);
+	
 	return temp->balance;
 }
 
-int withdraw(double ammount, char* name)
+double withdraw(double ammount, char* name)
 {
 	struct Account* temp = NULL;
 	temp = head;
@@ -88,10 +131,10 @@ int withdraw(double ammount, char* name)
 	}
 	if((temp->balance - ammount) < 0)
 		return -1;
-	//pthread_mutex_lock(&lock);
+	pthread_mutex_lock(&lock);
 	temp->balance -= ammount;
-	//pthread_mutex_unlock(&lock);
-	return 0;
+	pthread_mutex_unlock(&lock);
+	return temp->balance;
 }
 
 void deposit(double ammount, char* name)
@@ -106,32 +149,15 @@ void deposit(double ammount, char* name)
 
 		temp = temp->next;
 	}
-	//pthread_mutex_lock(&lock);
+	pthread_mutex_lock(&lock);
 	temp->balance += ammount;
-	//pthread_mutex_unlock(&lock);
+	pthread_mutex_unlock(&lock);
 	printf("Deposited Money\n");
 }
 
 int add_account(char* name)
 {
 	struct Account* new_acct = (struct Account*)malloc(sizeof(struct Account));
-
-	int i = 0; 
-
-	if(name[0] == '\0')
-	{
-		error("ERROR: account added is empty.");
-	}
-	while(name[i] != '\n')
-	{
-		if(name[i] == '\0')
-		{
-			break;
-		} 
-		//printf("(%c)", name[i]);
-		i++;
-	}
-	name[i] = '\0';
 
 	char* act_name = (char*)calloc(255,sizeof(char));
 
@@ -180,6 +206,19 @@ void prompt_serve_menu()
 	//send(client_socket, buff, sizeof(buff), 0);
 	write(client_socket, buff, sizeof(buff));
 }
+void print_accounts()
+{
+	system("clear");
+	printf("Account Name\t\tActive (0 or 1)\t\tCurrent Ballance\n");
+	struct Account* temp = NULL;
+	temp = head;
+
+	while(temp != NULL)
+	{
+		printf("%s\t\t\t%d\t\t\t%f\n", temp->name, temp->inSession, temp->balance);
+		temp = temp->next;
+	}
+}
 
 void* client_handler(void* fd)
 {
@@ -187,38 +226,54 @@ void* client_handler(void* fd)
 	int newfd = *(int*)fd;
 
 
-	char buffer[256];
+	char* buffer = malloc(255);
 	int status = 0;
 
 	// prompt_main_menu();
+	strcat(buffer, "------Main Menu------\n1. create <username (char)>\n2. serve <username (char)>\n3. quit\n---------------------");
 
-	while(read(newfd, buffer, sizeof(buffer)) > 0){
+	write(newfd, buffer, 255);
+	
+	bzero(buffer, 255);
+
+	while(read(newfd, buffer, 255) > 0){
+
+		print_accounts();
+		trim_newline(buffer);
+
 		if(strncmp(buffer, "create ", 7) == 0){
-			char* name = &buffer[7];
+			
+			char* name = calloc(255, sizeof(char));
+			name = &buffer[7];
+
 			if(strlen(name) <= 0){
 				write(newfd, "** Server: enter a valid name **\n", 32);
 				continue;
 			}
-			printf("adding %s\n", name);
+
+			pthread_mutex_lock(&lock);
 			int name_check = find_account_by_name(name);
+			pthread_mutex_unlock(&lock);
+
 			if(name_check == 1)
 			{
 				printf("Name already exists\n");
+				write(newfd, "Name already exists.", 20);
+				bzero(buffer, 255);
+				sleep(1);
 				continue;
 			}
 			pthread_mutex_lock(&lock);
 			if(add_account(name) == 1)
 			{
 				write(newfd, "Successfully added account.\n", 28);
-				bzero(buffer, sizeof(buffer));
-				//sleep(1);
+				bzero(buffer, 255);
+				sleep(1);
 				//system("clear");
 			}
 			pthread_mutex_unlock(&lock);
-			strcat(buffer, "------Main Menu------\n1. create <username (char)>\n2. serve <username (char)>\n3. quit\n---------------------");
-
-			write(newfd, buffer, sizeof(buffer));
-			bzero(buffer, sizeof(buffer));
+			
+			bzero(buffer, 255);
 			
 		}
 		else if(strncmp(buffer, "serve ", 6) == 0)
@@ -230,14 +285,12 @@ void* client_handler(void* fd)
 			make_active(name);
 			pthread_mutex_unlock(&lock);
 
-			if(status == 0)
+			while(recv(newfd, buffer, 255, 0) > 0)
 			{
-				continue;
-			}
+				print_accounts();
+				trim_newline(buffer);
 
-			while(recv(newfd, buffer, sizeof(buffer), 0) > 0)
-			{
-				if(strncmp(buffer, "create ", 5) == 0)
+				if(strncmp(buffer, "create ", 7) == 0)
 				{
 					write(newfd, "** Server: Can not open a new account in session **\n", 53);
 				}
@@ -245,38 +298,60 @@ void* client_handler(void* fd)
 				{
 					write(newfd, "** Server: Can not start a session while in session **\n", 58);
 				}
-				else if(strncmp(buffer, "end", 6) == 0)
+				else if(strncmp(buffer, "end", 3) == 0)
 				{
-						// pthread_mutex_lock(&lock);
-						// finish(storeName);
-						// pthread_mutex_unlock(&lock);
+						pthread_mutex_lock(&lock);
+						make_inactive(storeName);
+						pthread_mutex_unlock(&lock);
 						write(newfd, "** Server: Session was ended **\n", 35);
+						//bzero(buffer, 255);
+						sleep(1);
 						break;
 				}
-				else if(strncmp(buffer, "deposit ", 7) == 0)
+				else if(strncmp(buffer, "deposit ", 8) == 0)
 				{
 					char* amount = &buffer[7];
-					float numAmt = atof(amount);
-					//credit(storeName, numAmt);
+					float new_amount = atof(amount);
+					deposit(new_amount, storeName);
+					bzero(buffer, 255);
 				}
-				else if(strncmp(buffer, "withdraw ", 6) == 0)
+				else if(strncmp(buffer, "withdraw ", 9) == 0)
 				{
-					char* amount = &buffer[6];
-					float numAmt = atof(amount);
-					//debit(storeName, numAmt);					
+					char* amount = &buffer[9];
+					float new_amount = atof(amount);
+					double newbalance = withdraw(new_amount, storeName);
+					printf("Withdrew %f from account \"%s\"\n", new_amount, storeName );					
 				}
-				else
+				else if(strncmp(buffer, "query", 5) == 0 )
 				{
-					write(newfd, "** Server: Please enter a valid Command **\n", 44);
+					double balance = get_current_balance(storeName);
+					bzero(buffer, 255);
+					sprintf(buffer, "Current Balance: %.2f", balance);
+					write(newfd, buffer, 255);
 				}
+				bzero(buffer, 255);
+				strcat(buffer, "------Serve Menu------\n1. deposit <amount (double)>\n2. withdraw <amount (double)>\n3. query\n4. end\n---------------------");
+
+				//send(client_socket, buff, sizeof(buff), 0);
+				write(newfd, buffer, 124);
+				bzero(buffer, 255);
+				
 			}
 		}
-		else
+		else if(strncmp(buffer, "quit", 4) == 0)
 		{
-			write(newfd, "** Server: either open, start, or exit command **\n", 51);
+			bzero(buffer, 255);
+			strncat(buffer, "Quitting..", 10);
+			write(newfd, buffer, 10);
+			break;
 		}
-		bzero(buffer, 256);
-		prompt_main_menu();
+		
+		strcat(buffer, "------Main Menu------\n1. create <username (char)>\n2. serve <username (char)>\n3. quit\n---------------------");
+
+		write(newfd, buffer, 255);
+		
+		bzero(buffer, 255);
+		// prompt_main_menu();
 	}
 	close(newfd);
 	printf("Client %d has disconnected\n", ts_index);
