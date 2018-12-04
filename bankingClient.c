@@ -28,14 +28,6 @@ void* send_user_commands()
        
         if(read(0, buff, 255) < 0)
             write(2, "An error occurred in the read.\n", 31);
-        
-
-        // if(strncmp(buff, "quit", 4) == 0)
-        // {
-        //     printf("Disconnecting from the server. Ending client process.\n");
-        //     exit_func();
-        // }
-
 
         write(network_socket, buff, sizeof(buff));
         bzero(buff, 255);
@@ -89,6 +81,13 @@ int main(int argc, char* argv[])
     IP = gethostbyname(argv[1]);
 
     network_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+    listencount2++;
+
+    if(listencount2 == listencount)
+    {
+        listencount = listencount*2;
+    }
 
     struct sockaddr_in server_address;
     server_address.sin_family = AF_INET;

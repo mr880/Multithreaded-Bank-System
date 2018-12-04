@@ -11,7 +11,6 @@ int ts_index=0;
 struct Account* head = NULL;
 
 
-
 void error(char *msg)
 {
 	perror(msg);
@@ -37,7 +36,7 @@ char* trim_newline(char* input)
 	return input;
 }
 
-void make_inactive(char* name)
+int make_inactive(char* name)
 {
 
 	struct Account* temp = NULL;
@@ -49,20 +48,23 @@ void make_inactive(char* name)
 		{
 			if(temp->inSession == 1)
 			{
+				pthread_mutex_lock(&lock);
 				temp->inSession = 0;
+				pthread_mutex_unlock(&lock);
 			}
 			else
 			{
 				printf("%s was not in session, returning...\n", name);
-				return;
+				return 0;
 			}	
 		}
 		temp = temp->next;
 	}
 	printf("%s is out of session.\n", name);
+	return 1;
 }
 
-void make_active(char* name)
+int make_active(char* name)
 {
 
 	struct Account* temp = NULL;
@@ -72,11 +74,22 @@ void make_active(char* name)
 	{
 		if(strcmp(temp->name, name) == 0)
 		{
-			temp->inSession = 1;
+			if(temp->inSession == 0)
+			{
+				pthread_mutex_lock(&lock);
+				temp->inSession = 1;
+				pthread_mutex_unlock(&lock);
+			}
+			else
+			{
+				printf("%s was already in session, returning...\n", name);
+				return 0;
+			}	
 		}
 		temp = temp->next;
 	}
 	printf("%s is in session.\n", name);
+	return 1;
 }
 
 int find_account_by_name(char* name)
@@ -177,38 +190,10 @@ int add_account(char* name)
 
 }
 
-void prompt_improper_command()
-{
-	char buff[256] = {0};
-
-	strcat(buff, "\nImproper Input\n");
-
-	//send(client_socket, buff, sizeof(buff), 0);
-	write(client_socket, buff, sizeof(buff));
-}
-
-void prompt_main_menu()
-{
-	char buff[256] = {0};
-
-	strcat(buff, "------Main Menu------\n1. create <username (char)>\n2. serve <username (char)>\n3. quit\n---------------------");
-
-	//send(client_socket, buff, sizeof(buff), 0);
-	write(client_socket, buff, sizeof(buff));
-}
-
-void prompt_serve_menu()
-{
-	char buff[256] = {0};
-
-	strcat(buff, "------Serve Menu------\n1. deposit <amount (double)>\n2. withdraw <amount (double)>\n3. query\n4. end\n---------------------");
-
-	//send(client_socket, buff, sizeof(buff), 0);
-	write(client_socket, buff, sizeof(buff));
-}
 void print_accounts()
 {
 	system("clear");
+	printf("\t\t\t\tBank-System\n");
 	printf("Account Name\t\tActive (0 or 1)\t\tCurrent Ballance\n");
 	struct Account* temp = NULL;
 	temp = head;
@@ -230,7 +215,7 @@ void* client_handler(void* fd)
 	int status = 0;
 
 	// prompt_main_menu();
-	strcat(buffer, "------Main Menu------\n1. create <username (char)>\n2. serve <username (char)>\n3. quit\n---------------------");
+	strcat(buffer, "\t\t\t\tMain Menu\n\n1. create <username (char)>\n2. serve <username (char)>\n3. quit\n");
 
 	write(newfd, buffer, 255);
 	
@@ -278,12 +263,34 @@ void* client_handler(void* fd)
 		}
 		else if(strncmp(buffer, "serve ", 6) == 0)
 		{
+
+
+
 			char* storeName = (char*)malloc(sizeof(buffer));
 			char* name = &buffer[6];
 			strcpy(storeName, name);
+
 			pthread_mutex_lock(&lock);
-			make_active(name);
+			int name_check = find_account_by_name(storeName);
 			pthread_mutex_unlock(&lock);
+
+			if(name_check == 0)
+			{
+				write(newfd, "Account name does not exist.\n", 29);
+				bzero(buffer, 255);
+				sleep(1);
+				continue;
+			}
+			
+			int active = make_active(storeName);
+	
+			if(active == 0)
+			{
+				write(newfd, "Account is already in session\n", 30);
+				bzero(buffer, 255);
+				sleep(1);
+				continue;
+			}
 
 			while(recv(newfd, buffer, 255, 0) > 0)
 			{
@@ -300,9 +307,16 @@ void* client_handler(void* fd)
 				}
 				else if(strncmp(buffer, "end", 3) == 0)
 				{
-						pthread_mutex_lock(&lock);
-						make_inactive(storeName);
-						pthread_mutex_unlock(&lock);
+						
+						int inactive = make_inactive(storeName);
+						
+						if(inactive == 0)
+						{
+							write(newfd, "Account is already inactive\n", 28);
+							bzero(buffer, 255);
+							sleep(1);
+							continue;
+						}
 						write(newfd, "** Server: Session was ended **\n", 35);
 						bzero(buffer, 255);
 						sleep(1);
@@ -335,7 +349,7 @@ void* client_handler(void* fd)
 					sleep(2);
 				}
 				bzero(buffer, 255);
-				strcat(buffer, "------Serve Menu------\n1. deposit <amount (double)>\n2. withdraw <amount (double)>\n3. query\n4. end\n---------------------");
+				strcat(buffer, "\t\t\t\tServe Menu\n\n1. deposit <amount (double)>\n2. withdraw <amount (double)>\n3. query\n4. end\n");
 
 				//send(client_socket, buff, sizeof(buff), 0);
 				write(newfd, buffer, 124);
@@ -351,7 +365,7 @@ void* client_handler(void* fd)
 			break;
 		}
 		
-		strcat(buffer, "------Main Menu------\n1. create <username (char)>\n2. serve <username (char)>\n3. quit\n---------------------");
+		strcat(buffer, "\t\t\t\tMain Menu\n\n1. create <username (char)>\n2. serve <username (char)>\n3. quit\n");
 
 		write(newfd, buffer, 255);
 		
@@ -409,8 +423,9 @@ int main(int argc, char* argv[])
 	if(bind(sockfd, (struct sockaddr*) &server_address, sizeof(server_address)) < 0)
 		error("ERROR: binding error\n");
 
+	
 
-	listen(sockfd, 20);
+	listen(sockfd, listencount);
 
 	printf("Waiting for clients on port %d.....\n", port);
 
