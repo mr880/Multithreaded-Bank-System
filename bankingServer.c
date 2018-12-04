@@ -125,7 +125,7 @@ double get_current_balance(char* name)
 	char buffer[256] = {0};
 	sprintf(buffer, "%.2f", temp->balance);
 	//send(client_socket,buffer, sizeof(buffer), 0);
-	printf("Ballance: %f\n", temp->balance);
+	printf("Ballance: %.2f\n", temp->balance);
 	
 	return temp->balance;
 }
@@ -192,17 +192,22 @@ int add_account(char* name)
 
 void print_accounts()
 {
+	PAUSE = 1;
 	system("clear");
 	printf("\t\t\t\tBank-System\n");
-	printf("Account Name\t\tActive (0 or 1)\t\tCurrent Ballance\n");
+	printf("Account Name\tCurrent Ballance\tIn Service\n");
 	struct Account* temp = NULL;
 	temp = head;
 
 	while(temp != NULL)
 	{
-		printf("%s\t\t\t%d\t\t\t%f\n", temp->name, temp->inSession, temp->balance);
+		printf("%s\t\t$%.2f\t\t\t%d\n", temp->name, temp->balance, temp->inSession);
 		temp = temp->next;
 	}
+
+	PAUSE = 0;
+	alarm(15);
+
 }
 
 void* client_handler(void* fd)
@@ -223,10 +228,10 @@ void* client_handler(void* fd)
 
 	while(read(newfd, buffer, 255) > 0){
 
-		print_accounts();
+		//print_accounts();
 		trim_newline(buffer);
 
-		if(strncmp(buffer, "create ", 7) == 0){
+		if(strncmp(buffer, "create ", 7) == 0 && PAUSE == 0){
 			
 			char* name = calloc(255, sizeof(char));
 			name = &buffer[7];
@@ -261,6 +266,12 @@ void* client_handler(void* fd)
 			bzero(buffer, 255);
 			
 		}
+		else if(PAUSE == 1)
+		{
+			write(newfd, "Cannot create account at this time.", 35);
+			bzero(buffer, 255);
+			sleep(1);
+		}
 		else if(strncmp(buffer, "serve ", 6) == 0)
 		{
 
@@ -294,7 +305,7 @@ void* client_handler(void* fd)
 
 			while(recv(newfd, buffer, 255, 0) > 0)
 			{
-				print_accounts();
+				//print_accounts();
 				trim_newline(buffer);
 
 				if(strncmp(buffer, "create ", 7) == 0)
@@ -393,30 +404,23 @@ void* client_handler(void* fd)
 void disconnected(){
 	//printAccts();
 	printf("Server is disconnecting...\n");
+	free(head);
 	close(client_socket);
 	close(server_socket);
 	exit(0);
 }
 
-int main(int argc, char* argv[])
+void* server_handler(void* port_num)
 {
-	system("clear");
-
-	signal(SIGINT, disconnected);
-
+	//printf("hihihih!\n");
 	int port= -1;
-	port = atoi(argv[1]);
+	port = atoi((char*)port_num);
 
 	int sockfd, newsockfd;
 	struct sockaddr_in serv_addr, client_addr;
 
-	pthread_t ts;
+	pthread_t ts = (pthread_t) malloc(sizeof (pthread_t));
 
-
-
-
-
-	// ts2 = (pthread_t *) malloc(sizeof (pthread_t));
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
 	struct sockaddr_in server_address;
@@ -440,6 +444,7 @@ int main(int argc, char* argv[])
 
 	socklen_t clilen = sizeof(client_addr);
 	
+
 	while(1)
 	{
 		newsockfd = accept(sockfd, (struct sockaddr *) &client_addr, &clilen);
@@ -457,7 +462,25 @@ int main(int argc, char* argv[])
 		pthread_create(&id, NULL, client_handler, (void*)&newsockfd);
 
 	}
+	free(ts);
 	close(sockfd);
 	close(newsockfd);
+
+}
+
+int main(int argc, char* argv[])
+{
+	system("clear");
+
+	signal(SIGINT, disconnected);
+
+	pthread_t server_thread;
+
+	pthread_create(&server_thread, NULL, server_handler, (void*)argv[1]);
+
+	
+	pthread_join(server_thread, NULL);
+
+
 	return 0;
 }

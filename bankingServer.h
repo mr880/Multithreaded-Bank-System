@@ -23,8 +23,11 @@
 
 
 
-int listencount = 2;
+int listencount = 20;
 int listencount2 = 0;
+
+
+static int PAUSE = 0; 
 
 struct Account{
 
