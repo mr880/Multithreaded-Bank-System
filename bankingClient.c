@@ -90,9 +90,14 @@ int main(int argc, char* argv[])
     }
 
     struct sockaddr_in server_address;
+
+    //bzero((char *) &server_address, sizeof(server_address));
+    memset(&server_address, 0, sizeof(server_address));
     server_address.sin_family = AF_INET;
-    server_address.sin_port = htons(port);
+    
     bcopy((char *)IP->h_addr, (char *)&server_struct.sin_addr.s_addr, IP->h_length);
+    server_address.sin_port = htons(port);
+
     //server_address.sin_addr.s_addr = INADDR_ANY;
 
     while(connect(network_socket, (struct sockaddr *) &server_address, sizeof(server_address)))

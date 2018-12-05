@@ -462,32 +462,46 @@ void* server_handler(void* port_num)
 		pthread_create(&id, NULL, client_handler, (void*)&newsockfd);
 
 	}
-	free(ts);
+	
 	close(sockfd);
 	close(newsockfd);
 
 }
 
-int main(int argc, char* argv[])
+void* set_alarm()
 {
-	system("clear");
-
-	
-	
-
-	signal(SIGINT, disconnected);
-
-	pthread_t server_thread;
-
-	pthread_create(&server_thread, NULL, server_handler, (void*)argv[1]);
-
-	
 	signal(SIGALRM, print_accounts);
 	//schedule the first alarm
 	alarm(15);
 
 	while(1)
 		pause();
+
+	pthread_exit(0);
+}
+
+int main(int argc, char* argv[])
+{
+	system("clear");
+
+	if(first_call == 0)
+	{
+		first_call = 1;
+
+		pthread_t refresh_func = (pthread_t)malloc(sizeof(pthread_t));
+
+		pthread_create(&refresh_func, NULL, set_alarm, NULL);
+	}
+	
+
+	signal(SIGINT, disconnected);
+
+	pthread_t server_thread = (pthread_t)malloc(sizeof(pthread_t));
+
+	pthread_create(&server_thread, NULL, server_handler, (void*)argv[1]);
+
+
+	
 	
 	pthread_join(server_thread, NULL);
 

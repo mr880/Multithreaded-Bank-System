@@ -26,6 +26,7 @@
 int listencount = 20;
 int listencount2 = 0;
 
+int first_call = 0;
 
 static int PAUSE = 0; 
 
