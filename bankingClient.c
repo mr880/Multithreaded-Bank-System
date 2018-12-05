@@ -113,10 +113,11 @@ int main(int argc, char* argv[])
                 //perror("client: connect");
                 continue;
             }
-            sleep(3);
+            
             exit_ = 1;
             break;
         }
+        //sleep(3);
     }
     if (p == NULL) 
     {

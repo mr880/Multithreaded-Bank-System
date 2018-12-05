@@ -241,6 +241,7 @@ void* client_handler(void* fd)
 
 			if(strlen(name) <= 0){
 				write(newfd, "** Server: enter a valid name **\n", 32);
+				sleep(2);
 				continue;
 			}
 
@@ -253,7 +254,7 @@ void* client_handler(void* fd)
 				printf("Name already exists\n");
 				write(newfd, "Name already exists.", 20);
 				bzero(buffer, 255);
-				sleep(1);
+				sleep(2);
 				continue;
 			}
 			pthread_mutex_lock(&lock);
@@ -261,7 +262,7 @@ void* client_handler(void* fd)
 			{
 				write(newfd, "Successfully added account.\n", 28);
 				bzero(buffer, 255);
-				sleep(1);
+				sleep(2);
 				//system("clear");
 			}
 			pthread_mutex_unlock(&lock);
@@ -273,7 +274,7 @@ void* client_handler(void* fd)
 		{
 			write(newfd, "Cannot create account at this time.", 35);
 			bzero(buffer, 255);
-			sleep(1);
+			sleep(2);
 		}
 		else if(strncmp(buffer, "serve ", 6) == 0)
 		{
@@ -292,7 +293,7 @@ void* client_handler(void* fd)
 			{
 				write(newfd, "Account name does not exist.\n", 29);
 				bzero(buffer, 255);
-				sleep(1);
+				sleep(2);
 				continue;
 			}
 
@@ -302,9 +303,13 @@ void* client_handler(void* fd)
 			{
 				write(newfd, "Account is already in session\n", 30);
 				bzero(buffer, 255);
-				sleep(1);
+				sleep(2);
 				continue;
 			}
+
+			write(newfd, "** Server: Entering Serve Menu ** \n", 35);
+			bzero(buffer, 255);
+			sleep(2);
 
 			while(recv(newfd, buffer, 255, 0) > 0)
 			{
@@ -314,10 +319,12 @@ void* client_handler(void* fd)
 				if(strncmp(buffer, "create ", 7) == 0)
 				{
 					write(newfd, "** Server: Can not open a new account in session **\n", 53);
+					sleep(2);
 				}
 				else if(strncmp(buffer, "serve ", 6) == 0)
 				{
 					write(newfd, "** Server: Can not start a session while in session **\n", 58);
+					sleep(2);
 				}
 				else if(strncmp(buffer, "end", 3) == 0)
 				{
@@ -328,12 +335,12 @@ void* client_handler(void* fd)
 						{
 							write(newfd, "Account is already inactive\n", 28);
 							bzero(buffer, 255);
-							sleep(1);
+							sleep(2);
 							continue;
 						}
 						write(newfd, "** Server: Session was ended **\n", 35);
 						bzero(buffer, 255);
-						sleep(1);
+						sleep(2);
 						break;
 				}
 				else if(strncmp(buffer, "deposit ", 8) == 0)
@@ -343,7 +350,7 @@ void* client_handler(void* fd)
 					deposit(new_amount, storeName);
 					write(newfd, "** Server: Deposited funds **\n", 30);
 					bzero(buffer, 255);
-					sleep(1);
+					sleep(2);
 				}
 				else if(strncmp(buffer, "withdraw ", 9) == 0)
 				{
@@ -355,13 +362,13 @@ void* client_handler(void* fd)
 					{
 						write(newfd, "** Server: Insufficient funds **\n", 33);
 						bzero(buffer, 255);
-						sleep(1);
+						sleep(2);
 						continue;			
 					}
 					printf("Withdrew %f from account \"%s\"\n", new_amount, storeName );
 					write(newfd, "** Server: Withdrew funds **\n", 30);
 					bzero(buffer, 255);
-					sleep(1);					
+					sleep(2);				
 				}
 				else if(strncmp(buffer, "query", 5) == 0 )
 				{
@@ -377,6 +384,7 @@ void* client_handler(void* fd)
 				//send(client_socket, buff, sizeof(buff), 0);
 				write(newfd, buffer, 124);
 				bzero(buffer, 255);
+				//sleep(2);
 				
 			}
 		}
@@ -385,6 +393,7 @@ void* client_handler(void* fd)
 			bzero(buffer, 255);
 			strncat(buffer, "Quitting..", 10);
 			write(newfd, buffer, 10);
+			sleep(2);
 			break;
 		}
 		
