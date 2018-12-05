@@ -213,10 +213,10 @@ void print_accounts()
 void* client_handler(void* fd)
 {
 	
-
+	ts_index++;
 
 	int newfd = *(int*)fd;
-	printf("%d\n", newfd);
+	//printf("%d\n", newfd);
 
 	char* buffer = malloc(255);
 	int status = 0;

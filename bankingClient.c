@@ -92,23 +92,32 @@ int main(int argc, char* argv[])
     }
 
     // loop through all the results and connect to the first we can
-    for(p = servinfo; p != NULL; p = p->ai_next) {
-        if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) 
+    int exit_ = 0;
+    while(exit_ == 0)
+    {
+        
+        for(p = servinfo; p != NULL; p = p->ai_next)
         {
-            perror("client: socket");
-            continue;
-        }
+            printf("Waiting to connect...\n");
+            if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) 
+            {
+                //perror("client: socket");
+                sleep(3);
+                continue;
+            }
 
-        if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) 
-        {
-            close(sockfd);
-            perror("client: connect");
-            continue;
+            if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) 
+            {
+                close(sockfd);
+                sleep(3);
+                //perror("client: connect");
+                continue;
+            }
+            sleep(3);
+            exit_ = 1;
+            break;
         }
-
-        break;
     }
-
     if (p == NULL) 
     {
         fprintf(stderr, "client: failed to connect\n");
