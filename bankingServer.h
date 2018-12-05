@@ -52,3 +52,10 @@ struct _tids
 	struct _tids *next;
 };
 typedef struct _tids tids;
+
+
+void* client_handler(void*);
+void* outputFromServer();
+void print_accounts();
+void* set_alarm();
+void* server_handler(void*);

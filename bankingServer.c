@@ -213,6 +213,15 @@ void print_accounts()
 void* client_handler(void* fd)
 {
 	
+	if(first_call == 0)
+	{
+		first_call = 1;
+
+		pthread_t refresh_func = (pthread_t)malloc(sizeof(pthread_t));
+
+		pthread_create(&refresh_func, NULL, set_alarm, NULL);
+	}
+	
 	int newfd = *(int*)fd;
 
 
@@ -484,14 +493,7 @@ int main(int argc, char* argv[])
 {
 	system("clear");
 
-	if(first_call == 0)
-	{
-		first_call = 1;
-
-		pthread_t refresh_func = (pthread_t)malloc(sizeof(pthread_t));
-
-		pthread_create(&refresh_func, NULL, set_alarm, NULL);
-	}
+	
 	
 
 	signal(SIGINT, disconnected);
