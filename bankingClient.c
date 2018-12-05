@@ -7,39 +7,43 @@ int network_socket = -1;
 pthread_t output;
 pthread_t input;
 
-void exit_func()
+void* exit_func(void* fd)
 {
+    int newfd = *(int*)fd;
     printf("Exiting program..\n");
-    close(network_socket);
+    close(newfd);
     exit(0);
 }
 
 
 
-void* send_user_commands()
+void* send_user_commands(void* fd)
 {
+    int newfd = *(int*)fd;
     char buff[256] = {0};
     //strcat(buff, "Sending from Client");
-    printf("------------------------------------------\n");
-    printf("     Welcome to Multithreaded-Bank\n");
-    printf("------------------------------------------\n\n");
+    // printf("------------------------------------------\n");
+    // printf("     Welcome to Multithreaded-Bank\n");
+    // printf("------------------------------------------\n\n");
     while(1)
     {
        
         if(read(0, buff, 255) < 0)
             write(2, "An error occurred in the read.\n", 31);
 
-        write(network_socket, buff, sizeof(buff));
+        write(newfd, buff, sizeof(buff));
         bzero(buff, 255);
     }
     pthread_exit(NULL);
 }
 
-void* outputFromServer()
+void* outputFromServer(void* fd)
 {
+    int newfd = *(int*)fd;
+    
     char buff[256] = {0};
 
-    while(recv(network_socket, buff, sizeof(buff), 0) > 0)
+    while(recv(newfd, buff, sizeof(buff), 0) > 0)
     {
         system("clear");
         
@@ -47,7 +51,7 @@ void* outputFromServer()
     
         if(strncmp(buff, "Quitting..", 10) == 0)
         {
-            exit_func();
+            exit_func(fd);
         }
         printf("%s\n", buff);
         bzero(buff,256);
@@ -56,66 +60,74 @@ void* outputFromServer()
 
 }
 
+void *get_in_addr(struct sockaddr *sa)
+{
+    if (sa->sa_family == AF_INET) {
+        return &(((struct sockaddr_in*)sa)->sin_addr);
+    }
 
+    return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
 
 int main(int argc, char* argv[])
 {
 
     system("clear");
-    int port = -1;
-    struct hostent* IP;
-    struct sockaddr_in server_struct;
 
-    signal(SIGINT, exit_func);
+    int sockfd, numbytes;  
+    char buf[256];
+    struct addrinfo hints, *servinfo, *p;
+    int rv;
+    char s[INET6_ADDRSTRLEN];
 
-    // pthread_t* input = (pthread_t*)malloc(sizeof(pthread_t));
-    // pthread_t* output = (pthread_t*)malloc(sizeof(pthread_t));
 
-    if(argc < 3)
-    {
-        printf("Not Enough Arguments Entered\n");
-        exit(0);
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+
+    if ((rv = getaddrinfo(argv[1], argv[2], &hints, &servinfo)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        return 1;
     }
 
-    port = atoi(argv[2]);
-    IP = gethostbyname(argv[1]);
+    // loop through all the results and connect to the first we can
+    for(p = servinfo; p != NULL; p = p->ai_next) {
+        if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) 
+        {
+            perror("client: socket");
+            continue;
+        }
 
-    network_socket = socket(AF_INET, SOCK_STREAM, 0);
+        if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) 
+        {
+            close(sockfd);
+            perror("client: connect");
+            continue;
+        }
 
-    listencount2++;
-
-    if(listencount2 == listencount)
-    {
-        listencount = listencount*2;
+        break;
     }
 
-    struct sockaddr_in server_address;
-
-    //bzero((char *) &server_address, sizeof(server_address));
-    memset(&server_address, 0, sizeof(server_address));
-    server_address.sin_family = AF_INET;
-    
-    bcopy((char *)IP->h_addr, (char *)&server_struct.sin_addr.s_addr, IP->h_length);
-    server_address.sin_port = htons(port);
-
-    //server_address.sin_addr.s_addr = INADDR_ANY;
-
-    while(connect(network_socket, (struct sockaddr *) &server_address, sizeof(server_address)))
+    if (p == NULL) 
     {
-        printf("Waiting to connect...\n");
-        sleep(3);
+        fprintf(stderr, "client: failed to connect\n");
+        return 2;
     }
 
-    printf("Connection Successful\n");
+    inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof s);
+    printf("client: connecting to %s\n", s);
 
-    if(pthread_create(&output, NULL, outputFromServer, NULL) < 0){
+
+
+    if(pthread_create(&output, NULL, outputFromServer, (void*)&sockfd) < 0){
         printf("Error: output thread was not created\n");
         exit(0);
     }
     
 
     //User Read Thread (INPUT)  
-    if(pthread_create(&input, NULL, send_user_commands, NULL) < 0){
+    if(pthread_create(&input, NULL, send_user_commands, (void*)&sockfd) < 0){
         printf("Error: input thread was not created\n");
         exit(0);
     }
@@ -123,7 +135,7 @@ int main(int argc, char* argv[])
     pthread_join(output, NULL);
     pthread_join(input, NULL);
 
-
+    //close(sockfd);
 
 
 

@@ -213,17 +213,10 @@ void print_accounts()
 void* client_handler(void* fd)
 {
 	
-	if(first_call == 0)
-	{
-		first_call = 1;
 
-		pthread_t refresh_func = (pthread_t)malloc(sizeof(pthread_t));
 
-		pthread_create(&refresh_func, NULL, set_alarm, NULL);
-	}
-	
 	int newfd = *(int*)fd;
-
+	printf("%d\n", newfd);
 
 	char* buffer = malloc(255);
 	int status = 0;
@@ -232,7 +225,8 @@ void* client_handler(void* fd)
 	strcat(buffer, "\t\t\t\tMain Menu\n\n1. create <username (char)>\n2. serve <username (char)>\n3. quit\n");
 
 	write(newfd, buffer, 255);
-	
+	//write(newfd, "JSDIFSDJF", 11);
+	//printf("why is this not sending?\n");
 	bzero(buffer, 255);
 
 	while(read(newfd, buffer, 255) > 0){
@@ -419,53 +413,138 @@ void disconnected(){
 	exit(0);
 }
 
+void sigchld_handler(int s)
+{
+    // waitpid() might overwrite errno, so we save and restore it:
+    int saved_errno = errno;
+
+    while(waitpid(-1, NULL, WNOHANG) > 0);
+
+    errno = saved_errno;
+}
+
+void *get_in_addr(struct sockaddr *sa)
+{
+    if (sa->sa_family == AF_INET) {
+        return &(((struct sockaddr_in*)sa)->sin_addr);
+    }
+
+    return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
 void* server_handler(void* port_num)
 {
 	//printf("hihihih!\n");
 	int port= -1;
+	int opt = 1;
 	port = atoi((char*)port_num);
 
 	int sockfd, newsockfd;
+	struct addrinfo hints, *res, *p;
+	struct sockaddr_storage their_addr;
+	socklen_t addr_size;
+
+	char s[INET6_ADDRSTRLEN];
+
+	struct sigaction sa;
+
+	memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_INET;  // use IPv4 or IPv6, whichever
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;     // fill in my IP for me
+
+    getaddrinfo(NULL, (char*)port_num, &hints, &res);
+
+
 	struct sockaddr_in serv_addr, client_addr;
 
 	pthread_t ts = (pthread_t) malloc(sizeof (pthread_t));
 
-	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	// sockfd = socket(res, SOCK_STREAM, 0);
 
-	struct sockaddr_in server_address;
+	// struct sockaddr_in server_address;
 
-	server_address.sin_family = AF_INET;
+	// server_address.sin_family = AF_INET;
 
-	server_address.sin_port = htons(port);
+	// server_address.sin_port = htons(port);
 
-	server_address.sin_addr.s_addr = INADDR_ANY;
+	// server_address.sin_addr.s_addr = INADDR_ANY;
+	for(p = res; p != NULL; p = p->ai_next) 
+	{
+        if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) 
+        {
+            perror("server: socket");
+            continue;
+        }
+
+        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int)) == -1) 
+        {
+            perror("setsockopt");
+            exit(1);
+        }
+
+        if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) 
+        {
+            close(sockfd);
+            perror("server: bind");
+            continue;
+        }
+
+        break;
+    }
 
 
+    if(listen(sockfd, 20) < 0)
+    {
+    	perror("Listening\n");
+    	exit(0);
+    }
 
-	if(bind(sockfd, (struct sockaddr*) &server_address, sizeof(server_address)) < 0)
-		error("ERROR: binding error\n");
+    //freeaddrinfo(res); // all done with this structure
 
-	
 
-	listen(sockfd, listencount);
+	// if(bind(sockfd, (struct sockaddr*) &server_address, sizeof(server_address)) < 0)
+	// 	error("ERROR: binding error\n");
+
+	freeaddrinfo(res); // all done with this structure
+
+	if (p == NULL)  
+	{
+        fprintf(stderr, "server: failed to bind\n");
+        exit(1);
+    }
+	// listen(sockfd, listencount);
+    if (listen(sockfd, 20) == -1) {
+        perror("listen");
+        exit(1);
+    }
+
+    sa.sa_handler = sigchld_handler; // reap all dead processes
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+    if (sigaction(SIGCHLD, &sa, NULL) == -1) {
+        perror("sigaction");
+        exit(1);
+    }
 
 	printf("Waiting for clients on port %d.....\n", port);
 
-	socklen_t clilen = sizeof(client_addr);
+	// socklen_t clilen = sizeof(client_addr);
 	
+	addr_size = sizeof their_addr;
 
 	while(1)
 	{
-		newsockfd = accept(sockfd, (struct sockaddr *) &client_addr, &clilen);
+		newsockfd = accept(sockfd, (struct sockaddr *) &their_addr, &addr_size);
 
 		if(newsockfd < 0)
 		{
-			error("ERROR: accept error\n");
+			perror("accept");
+			continue;
 		}
-		else
-		{
-			printf("Connection accepted from [%s, %d]\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
-		}
+		inet_ntop(their_addr.ss_family, get_in_addr((struct sockaddr *)&their_addr), s, sizeof s);
+        printf("server: got connection from %s\n", s);
+			//printf("Connection accepted from [%s, %d]\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 		
 		pthread_t id;
 		pthread_create(&id, NULL, client_handler, (void*)&newsockfd);
@@ -493,7 +572,15 @@ int main(int argc, char* argv[])
 {
 	system("clear");
 
-	
+	if(first_call == 0)
+	{
+		//printf("FUCK\n");
+		first_call = 1;
+
+		pthread_t refresh_func = (pthread_t)malloc(sizeof(pthread_t));
+
+		pthread_create(&refresh_func, NULL, set_alarm, NULL);
+	}
 	
 
 	signal(SIGINT, disconnected);
