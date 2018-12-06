@@ -361,7 +361,8 @@ void* client_handler(void* fd)
 			write(newfd, "** Server: Entering Serve Menu ** \n", 35);
 			bzero(buffer, 255);
 			//sleep(2);
-
+			write(newfd, "\t\t\t\tServe Menu\n\n1. deposit <amount (double)>\n2. withdraw <amount (double)>\n3. query\n4. end\n5. quit\n", 124);
+				
 			while(recv(newfd, buffer, 255, 0) > 0)
 			{
 				//print_accounts();
@@ -387,6 +388,7 @@ void* client_handler(void* fd)
 							write(newfd, "Account is already inactive\n", 28);
 							bzero(buffer, 255);
 							//sleep(2);
+							write(newfd, "\t\t\t\tServe Menu\n\n1. deposit <amount (double)>\n2. withdraw <amount (double)>\n3. query\n4. end\n5. quit\n", 124);
 							continue;
 						}
 						write(newfd, "** Server: Session was ended **\n", 35);
@@ -414,6 +416,7 @@ void* client_handler(void* fd)
 						write(newfd, "** Server: Insufficient funds **\n", 33);
 						bzero(buffer, 255);
 						//sleep(2);
+						write(newfd, "\t\t\t\tServe Menu\n\n1. deposit <amount (double)>\n2. withdraw <amount (double)>\n3. query\n4. end\n5. quit\n", 124);
 						continue;			
 					}
 					printf("Withdrew %f from account \"%s\"\n", new_amount, storeName );
@@ -429,11 +432,23 @@ void* client_handler(void* fd)
 					write(newfd, buffer, 255);
 					//sleep(2);
 				}
+				else if(strncmp(buffer, "quit", 4) == 0)
+				{
+					int inactive = make_inactive(storeName);
+						
+					write(newfd, "** Server: Session was ended **\n", 35);
+					
+					write(newfd, "Quitting..", 10);
+
+					bzero(buffer, 255);
+					//sleep(2);
+					break;
+				}
 				bzero(buffer, 255);
 				//strcat(buffer, "\t\t\t\tServe Menu\n\n1. deposit <amount (double)>\n2. withdraw <amount (double)>\n3. query\n4. end\n");
 
 				//send(client_socket, buff, sizeof(buff), 0);
-				write(newfd, "\t\t\t\tServe Menu\n\n1. deposit <amount (double)>\n2. withdraw <amount (double)>\n3. query\n4. end\n", 124);
+				write(newfd, "\t\t\t\tServe Menu\n\n1. deposit <amount (double)>\n2. withdraw <amount (double)>\n3. query\n4. end\n5. quit\n", 124);
 				bzero(buffer, 255);
 				//sleep(2);
 				
