@@ -27,12 +27,12 @@ void* send_user_commands(void* fd)
     while(1)
     {
        
-        if(read(0, buff, 25) < 0)
+        if(read(0, buff, 255) < 0)
             write(2, "An error occurred in the read.\n", 31);
 
-        write(newfd, buff, sizeof(buff));
-        sleep(2);
-        
+        write(newfd, buff, 255);
+        //sleep(2);
+
         bzero(buff, 255);
     }
     pthread_exit(NULL);
@@ -42,7 +42,7 @@ void* outputFromServer(void* fd)
 {
     int newfd = *(int*)fd;
     
-    char buff[256] = {0};
+    char buff[255] = {0};
 
     while(recv(newfd, buff, sizeof(buff), 0) > 0)
     {
@@ -54,17 +54,20 @@ void* outputFromServer(void* fd)
         {
             exit_func();
         }
-        printf("%s\n", buff);
-        //sleep(3);
+        
         
 
         if(strncmp(buff, "** Server disconnected **", 25) == 0)
         {
-            //printf("FUUU\n");
+            printf("** Server disconnected **\n");
             //sleep(1);
             exit_func();
         }
-        bzero(buff,256);
+
+        printf("%s\n", buff);
+        sleep(2);
+
+        bzero(buff,255);
     }
     pthread_exit(NULL);
 
@@ -167,7 +170,7 @@ int main(int argc, char* argv[])
     pthread_join(input, NULL);
 
     close(sockfd);
-\
+
 
     return 0;
 }

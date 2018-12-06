@@ -173,12 +173,12 @@ int add_account(char* name)
 {
 	struct Account* new_acct = (struct Account*)malloc(sizeof(struct Account));
 
-	char* act_name = (char*)calloc(255,sizeof(char));
+	//char* act_name = (char*)calloc(255,sizeof(char));
 
 	//printf("||%s||\n", name);
-	memcpy(act_name, name, strlen(name) + 1);
+	memcpy(new_acct->name, name, 255);
 
-	strcat(new_acct->name, act_name);
+	//strcat(new_acct->name, act_name);
 
 	new_acct->balance = 0.0;
 	new_acct->inSession = 0;
@@ -196,16 +196,16 @@ void print_accounts()
 	PAUSE = 1;
 	system("clear");
 	printf("\t\t\t\tBank-System\n");
-	printf("Account Name\tCurrent Ballance\tIn Service\n");
+	printf("Account Name\t\tCurrent Ballance\t\tIn Service\n");
 	struct Account* temp = NULL;
 	temp = head;
 
 	while(temp != NULL)
 	{
-		printf("%s\t\t$%.2f\t\t\t%d\n", temp->name, temp->balance, temp->inSession);
+		printf("%s\t\t\t$%.2f\t\t\t\t%d\n", temp->name, temp->balance, temp->inSession);
 		temp = temp->next;
 	}
-	//sleep(5);
+	sleep(5);
 	PAUSE = 0;
 	alarm(15);
 
@@ -219,7 +219,7 @@ void* client_handler(void* fd)
 	int newfd = *(int*)fd;
 	//printf("%d\n", newfd);
 
-	char* buffer = malloc(255);
+	char buffer[255] = {0}; 
 	int status = 0;
 
 	// prompt_main_menu();
@@ -229,20 +229,24 @@ void* client_handler(void* fd)
 	//write(newfd, "JSDIFSDJF", 11);
 	//printf("why is this not sending?\n");
 	bzero(buffer, 255);
+	
 
-	while(read(newfd, buffer, 255) > 0){
-
-		//print_accounts();
+	while(read(newfd, buffer, 255) > 0)
+	{
+	
 		trim_newline(buffer);
 
 		if(strncmp(buffer, "create ", 7) == 0 && PAUSE == 0){
 			
 			char* name = calloc(255, sizeof(char));
-			name = &buffer[7];
+			memcpy(name,&buffer[7],255);
 
+			printf("name: %s\n", name);
 			if(strlen(name) <= 0){
 				write(newfd, "** Server: enter a valid name **\n", 32);
 				//sleep(2);
+				//free(name);
+				write(newfd, "\t\t\t\tMain Menu\n\n1. create <username (char)>\n2. serve <username (char)>\n3. quit\n", 82);
 				continue;
 			}
 
@@ -256,6 +260,8 @@ void* client_handler(void* fd)
 				write(newfd, "Name already exists.", 20);
 				bzero(buffer, 255);
 				//sleep(2);
+				//free(name);
+				write(newfd, "\t\t\t\tMain Menu\n\n1. create <username (char)>\n2. serve <username (char)>\n3. quit\n", 82);
 				continue;
 			}
 			pthread_mutex_lock(&lock);
@@ -263,30 +269,33 @@ void* client_handler(void* fd)
 			{
 				write(newfd, "Successfully added account.\n", 28);
 				bzero(buffer, 255);
-				sleep(2);
+				//sleep(2);
 				//system("clear");
 			}
 			pthread_mutex_unlock(&lock);
 			
 			bzero(buffer, 255);
-			
+			//free(name);
+			//continue;
 		}
 		else if(strncmp(buffer, "create ", 7) == 0 && PAUSE == 1)
 		{
 			write(newfd, "Waiting for server to update...", 31);
-			bzero(buffer, 255);
+			//bzero(buffer, 255);
 			//sleep(2);
 			while(PAUSE == 1)
 			{
 				//do nothing
 			}
 			char* name = calloc(255, sizeof(char));
-			name = &buffer[7];
+			memcpy(name,&buffer[7],255);
 
 			if(strlen(name) <= 0){
 				write(newfd, "** Server: enter a valid name **\n", 32);
 				//sleep(2);
+				write(newfd, "\t\t\t\tMain Menu\n\n1. create <username (char)>\n2. serve <username (char)>\n3. quit\n", 82);
 				continue;
+
 			}
 
 			pthread_mutex_lock(&lock);
@@ -299,6 +308,7 @@ void* client_handler(void* fd)
 				write(newfd, "Name already exists.", 20);
 				bzero(buffer, 255);
 				//sleep(2);
+				write(newfd, "\t\t\t\tMain Menu\n\n1. create <username (char)>\n2. serve <username (char)>\n3. quit\n", 82);
 				continue;
 			}
 			pthread_mutex_lock(&lock);
@@ -312,6 +322,7 @@ void* client_handler(void* fd)
 			pthread_mutex_unlock(&lock);
 			
 			bzero(buffer, 255);
+			//continue;
 
 		}
 		else if(strncmp(buffer, "serve ", 6) == 0)
@@ -332,6 +343,7 @@ void* client_handler(void* fd)
 				write(newfd, "Account name does not exist.\n", 29);
 				bzero(buffer, 255);
 				//sleep(2);
+				write(newfd, "\t\t\t\tMain Menu\n\n1. create <username (char)>\n2. serve <username (char)>\n3. quit\n", 82);
 				continue;
 			}
 
@@ -342,6 +354,7 @@ void* client_handler(void* fd)
 				write(newfd, "Account is already in session\n", 30);
 				bzero(buffer, 255);
 				//sleep(2);
+				write(newfd, "\t\t\t\tMain Menu\n\n1. create <username (char)>\n2. serve <username (char)>\n3. quit\n", 82);
 				continue;
 			}
 
@@ -417,10 +430,10 @@ void* client_handler(void* fd)
 					//sleep(2);
 				}
 				bzero(buffer, 255);
-				strcat(buffer, "\t\t\t\tServe Menu\n\n1. deposit <amount (double)>\n2. withdraw <amount (double)>\n3. query\n4. end\n");
+				//strcat(buffer, "\t\t\t\tServe Menu\n\n1. deposit <amount (double)>\n2. withdraw <amount (double)>\n3. query\n4. end\n");
 
 				//send(client_socket, buff, sizeof(buff), 0);
-				write(newfd, buffer, 124);
+				write(newfd, "\t\t\t\tServe Menu\n\n1. deposit <amount (double)>\n2. withdraw <amount (double)>\n3. query\n4. end\n", 124);
 				bzero(buffer, 255);
 				//sleep(2);
 				
@@ -434,11 +447,9 @@ void* client_handler(void* fd)
 			//sleep(2);
 			break;
 		}
-		
-		strcat(buffer, "\t\t\t\tMain Menu\n\n1. create <username (char)>\n2. serve <username (char)>\n3. quit\n");
 
-		write(newfd, buffer, 255);
-		
+		write(newfd, "\t\t\t\tMain Menu\n\n1. create <username (char)>\n2. serve <username (char)>\n3. quit\n", 82);
+		//printf("WTF?\n");
 		bzero(buffer, 255);
 		// prompt_main_menu();
 	}
@@ -600,12 +611,14 @@ void* server_handler(void* port_num)
 	    new_socket->next = sockhead;
 	    sockhead = new_socket;
 
-	    system("clear");
-		printf("\t\t\t\tBank-System\n");
-		printf("Account Name\tCurrent Ballance\tIn Service\n");
+	    
 
 	    if(first_call == 0)
 		{
+			system("clear");
+			printf("\t\t\t\tBank-System\n");
+			printf("Account Name\tCurrent Ballance\tIn Service\n");
+
 			first_call = 1;
 
 			pthread_t refresh_func = (pthread_t)malloc(sizeof(pthread_t));
