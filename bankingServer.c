@@ -114,7 +114,7 @@ double get_current_balance(char* name)
 {
 	struct Account* temp = NULL;
 	temp = head;
-	printf("NAME: %s\n", name);
+	//printf("NAME: %s\n", name);
 	while(temp != NULL)
 	{
 		if(strcmp(temp->name, name) == 0)
@@ -135,7 +135,7 @@ double withdraw(double ammount, char* name)
 {
 	struct Account* temp = NULL;
 	temp = head;
-	printf("NAME: %s\n", name);
+	//printf("NAME: %s\n", name);
 	while(temp != NULL)
 	{
 		if(strcmp(temp->name, name) == 0)
@@ -155,7 +155,7 @@ void deposit(double ammount, char* name)
 {
 	struct Account* temp = NULL;
 	temp = head;
-	printf("NAME: %s\n", name);
+	//printf("NAME: %s\n", name);
 	while(temp != NULL)
 	{
 		if(strcmp(temp->name, name) == 0)
@@ -205,7 +205,7 @@ void print_accounts()
 		printf("%s\t\t$%.2f\t\t\t%d\n", temp->name, temp->balance, temp->inSession);
 		temp = temp->next;
 	}
-
+	//sleep(5);
 	PAUSE = 0;
 	alarm(15);
 
@@ -271,11 +271,48 @@ void* client_handler(void* fd)
 			bzero(buffer, 255);
 			
 		}
-		else if(PAUSE == 1)
+		else if(strncmp(buffer, "create ", 7) == 0 && PAUSE == 1)
 		{
-			write(newfd, "Cannot create account at this time.", 35);
+			write(newfd, "Waiting for server to update...", 31);
 			bzero(buffer, 255);
-			sleep(2);
+			//sleep(2);
+			while(PAUSE == 1)
+			{
+				//do nothing
+			}
+			char* name = calloc(255, sizeof(char));
+			name = &buffer[7];
+
+			if(strlen(name) <= 0){
+				write(newfd, "** Server: enter a valid name **\n", 32);
+				sleep(2);
+				continue;
+			}
+
+			pthread_mutex_lock(&lock);
+			int name_check = find_account_by_name(name);
+			pthread_mutex_unlock(&lock);
+
+			if(name_check == 1)
+			{
+				printf("Name already exists\n");
+				write(newfd, "Name already exists.", 20);
+				bzero(buffer, 255);
+				sleep(2);
+				continue;
+			}
+			pthread_mutex_lock(&lock);
+			if(add_account(name) == 1)
+			{
+				write(newfd, "Successfully added account.\n", 28);
+				bzero(buffer, 255);
+				sleep(2);
+				//system("clear");
+			}
+			pthread_mutex_unlock(&lock);
+			
+			bzero(buffer, 255);
+
 		}
 		else if(strncmp(buffer, "serve ", 6) == 0)
 		{
@@ -566,7 +603,7 @@ void* server_handler(void* port_num)
 	    system("clear");
 		printf("\t\t\t\tBank-System\n");
 		printf("Account Name\tCurrent Ballance\tIn Service\n");
-		
+
 	    if(first_call == 0)
 		{
 			first_call = 1;
