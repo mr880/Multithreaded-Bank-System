@@ -2,8 +2,8 @@
 
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
-int server_socket = -1;
-int client_socket = -1;
+// int server_socket = -1;
+// int client_socket = -1;
 
 // pthread_t* ts2;
 int ts_index=0;
@@ -472,8 +472,8 @@ void disconnected(){
 
 	}
 	free(sockhead);
-	close(client_socket);
-	close(server_socket);
+	// close(client_socket);
+	// close(server_socket);
 	exit(0);
 }
 

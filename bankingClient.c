@@ -164,7 +164,7 @@ int main(int argc, char* argv[])
     pthread_join(output, NULL);
     pthread_join(input, NULL);
 
-    //close(sockfd);
+    close(sockfd);
 
 
 
