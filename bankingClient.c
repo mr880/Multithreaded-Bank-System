@@ -3,13 +3,15 @@
 
 
 int network_socket = -1;
+int stored_sock = -1;
 
 pthread_t output;
 pthread_t input;
 
-void* exit_func(void* fd)
+
+void exit_func()
 {
-    int newfd = *(int*)fd;
+    int newfd = stored_sock;
     printf("Exiting program..\n");
     close(newfd);
     exit(0);
@@ -21,10 +23,7 @@ void* send_user_commands(void* fd)
 {
     int newfd = *(int*)fd;
     char buff[256] = {0};
-    //strcat(buff, "Sending from Client");
-    // printf("------------------------------------------\n");
-    // printf("     Welcome to Multithreaded-Bank\n");
-    // printf("------------------------------------------\n\n");
+
     while(1)
     {
        
@@ -51,9 +50,18 @@ void* outputFromServer(void* fd)
     
         if(strncmp(buff, "Quitting..", 10) == 0)
         {
-            exit_func(fd);
+            exit_func();
         }
         printf("%s\n", buff);
+        //sleep(3);
+        
+
+        if(strncmp(buff, "** Server disconnected **", 25) == 0)
+        {
+            //printf("FUUU\n");
+            //sleep(1);
+            exit_func();
+        }
         bzero(buff,256);
     }
     pthread_exit(NULL);
@@ -73,7 +81,7 @@ int main(int argc, char* argv[])
 {
 
     system("clear");
-
+    signal(SIGINT, exit_func);
     int sockfd, numbytes;  
     char buf[256];
     struct addrinfo hints, *servinfo, *p;
@@ -83,7 +91,7 @@ int main(int argc, char* argv[])
 
 
     memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
+    hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
 
     if ((rv = getaddrinfo(argv[1], argv[2], &hints, &servinfo)) != 0) {
@@ -113,17 +121,28 @@ int main(int argc, char* argv[])
                 //perror("client: connect");
                 continue;
             }
+
+           
             
             exit_ = 1;
             break;
         }
         //sleep(3);
     }
+
     if (p == NULL) 
     {
         fprintf(stderr, "client: failed to connect\n");
         return 2;
     }
+
+    
+
+
+    stored_sock = sockfd;
+    
+    // printf("sock: %d\n", sockhead->fd);
+    // sleep(1);
 
     inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof s);
     printf("client: connecting to %s\n", s);

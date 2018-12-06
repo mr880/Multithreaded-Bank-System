@@ -30,6 +30,9 @@ int first_call = 0;
 
 static int PAUSE = 0; 
 
+
+
+
 struct Account{
 
 	char name[255];
@@ -41,10 +44,12 @@ struct Account{
 
 struct socket{
 
-	int client_socket;
-	int my_num;
+	int fd;
+	struct socket* next;
 
 };
+
+struct socket* sockhead = NULL;
 
 struct _tids
 {
@@ -59,3 +64,5 @@ void* outputFromServer();
 void print_accounts();
 void* set_alarm();
 void* server_handler(void*);
+
+void exit_func();

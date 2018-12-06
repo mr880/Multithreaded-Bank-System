@@ -1,2 +1,3 @@
 - check for incorrect inputs to deposit and withdraw
 - print all error messages received from the server
+- make quit available in both sessions

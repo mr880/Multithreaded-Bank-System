@@ -11,6 +11,7 @@ int ts_index=0;
 struct Account* head = NULL;
 
 
+
 void error(char *msg)
 {
 	perror(msg);
@@ -415,8 +416,25 @@ void* client_handler(void* fd)
 
 void disconnected(){
 	//printAccts();
+	char buffer[255];
+	bzero(buffer, 255);
+
 	printf("Server is disconnecting...\n");
 	free(head);
+	struct socket* tempsock;
+	tempsock = sockhead;
+
+	while(tempsock != NULL)
+	{
+		//printf("sockhead: %d\n", sockhead->fd);
+		send(tempsock->fd, "** Server disconnected **",25,0);
+		bzero(buffer, 255);
+
+		tempsock = tempsock->next;
+
+
+	}
+	free(sockhead);
 	close(client_socket);
 	close(server_socket);
 	exit(0);
@@ -469,15 +487,6 @@ void* server_handler(void* port_num)
 
 	pthread_t ts = (pthread_t) malloc(sizeof (pthread_t));
 
-	// sockfd = socket(res, SOCK_STREAM, 0);
-
-	// struct sockaddr_in server_address;
-
-	// server_address.sin_family = AF_INET;
-
-	// server_address.sin_port = htons(port);
-
-	// server_address.sin_addr.s_addr = INADDR_ANY;
 	for(p = res; p != NULL; p = p->ai_next) 
 	{
         if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) 
@@ -508,12 +517,6 @@ void* server_handler(void* port_num)
     	perror("Listening\n");
     	exit(0);
     }
-
-    //freeaddrinfo(res); // all done with this structure
-
-
-	// if(bind(sockfd, (struct sockaddr*) &server_address, sizeof(server_address)) < 0)
-	// 	error("ERROR: binding error\n");
 
 	freeaddrinfo(res); // all done with this structure
 
@@ -554,7 +557,24 @@ void* server_handler(void* port_num)
 		inet_ntop(their_addr.ss_family, get_in_addr((struct sockaddr *)&their_addr), s, sizeof s);
         printf("server: got connection from %s\n", s);
 			//printf("Connection accepted from [%s, %d]\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+
+		struct socket* new_socket = (struct socket*)malloc(sizeof(struct socket));
+	    new_socket->fd = newsockfd;
+	    new_socket->next = sockhead;
+	    sockhead = new_socket;
+
+	    system("clear");
+		printf("\t\t\t\tBank-System\n");
+		printf("Account Name\tCurrent Ballance\tIn Service\n");
 		
+	    if(first_call == 0)
+		{
+			first_call = 1;
+
+			pthread_t refresh_func = (pthread_t)malloc(sizeof(pthread_t));
+
+			pthread_create(&refresh_func, NULL, set_alarm, NULL);
+		}
 		pthread_t id;
 		pthread_create(&id, NULL, client_handler, (void*)&newsockfd);
 
@@ -581,15 +601,7 @@ int main(int argc, char* argv[])
 {
 	system("clear");
 
-	if(first_call == 0)
-	{
-		//printf("FUCK\n");
-		first_call = 1;
-
-		pthread_t refresh_func = (pthread_t)malloc(sizeof(pthread_t));
-
-		pthread_create(&refresh_func, NULL, set_alarm, NULL);
-	}
+	
 	
 
 	signal(SIGINT, disconnected);
