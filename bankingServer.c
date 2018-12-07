@@ -2,22 +2,10 @@
 
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
-// int server_socket = -1;
-// int client_socket = -1;
-
-// pthread_t* ts2;
 int ts_index=0;
 
 struct Account* head = NULL;
 
-
-
-void error(char *msg)
-{
-	perror(msg);
-	exit(1);
-	
-}
 
 char* trim_newline(char* input)
 {
@@ -131,7 +119,7 @@ double get_current_balance(char* name)
 	return temp->balance;
 }
 
-double withdraw(double ammount, char* name)
+double withdraw(double amount, char* name)
 {
 	struct Account* temp = NULL;
 	temp = head;
@@ -143,15 +131,15 @@ double withdraw(double ammount, char* name)
 
 		temp = temp->next;
 	}
-	if((temp->balance - ammount) < 0)
+	if((temp->balance - amount) < 0)
 		return -1.1;
 	pthread_mutex_lock(&lock);
-	temp->balance -= ammount;
+	temp->balance -= amount;
 	pthread_mutex_unlock(&lock);
 	return temp->balance;
 }
 
-void deposit(double ammount, char* name)
+void deposit(double amount, char* name)
 {
 	struct Account* temp = NULL;
 	temp = head;
@@ -164,7 +152,7 @@ void deposit(double ammount, char* name)
 		temp = temp->next;
 	}
 	pthread_mutex_lock(&lock);
-	temp->balance += ammount;
+	temp->balance += amount;
 	pthread_mutex_unlock(&lock);
 	printf("Deposited Money\n");
 }
@@ -173,12 +161,7 @@ int add_account(char* name)
 {
 	struct Account* new_acct = (struct Account*)malloc(sizeof(struct Account));
 
-	//char* act_name = (char*)calloc(255,sizeof(char));
-
-	//printf("||%s||\n", name);
 	memcpy(new_acct->name, name, 255);
-
-	//strcat(new_acct->name, act_name);
 
 	new_acct->balance = 0.0;
 	new_acct->inSession = 0;
@@ -186,7 +169,7 @@ int add_account(char* name)
 	new_acct->next = head;
 	head = new_acct;
 
-	printf("Added account (%s)\n", new_acct->name);
+	printf("Added %s to the database..\n", new_acct->name);
 	return 1;
 
 }
@@ -202,10 +185,22 @@ void print_accounts()
 
 	while(temp != NULL)
 	{
-		printf("%s\t\t\t$%.2f\t\t\t\t%d\n", temp->name, temp->balance, temp->inSession);
+		if(strlen(temp->name) < 8 )
+		{
+			printf("%s\t\t\t$%.2f\t\t\t\t%d\n", temp->name, temp->balance, temp->inSession);
+
+		}
+		else if(strlen(temp->name) >= 8 && strlen(temp->name) <= 13)
+		{
+			printf("%s\t\t$%.2f\t\t\t\t%d\n", temp->name, temp->balance, temp->inSession);
+		}
+		else if(strlen(temp->name) > 13)
+		{
+			printf("%s\t$%.2f\t\t\t\t%d\n", temp->name, temp->balance, temp->inSession);
+		}
 		temp = temp->next;
 	}
-	sleep(5);
+	//sleep(5);
 	PAUSE = 0;
 	alarm(15);
 
@@ -241,10 +236,10 @@ void* client_handler(void* fd)
 			char* name = calloc(255, sizeof(char));
 			memcpy(name,&buffer[7],255);
 
-			printf("name: %s\n", name);
+			//printf("name: %s\n", name);
 			if(strlen(name) <= 0){
 				write(newfd, "** Server: enter a valid name **\n", 32);
-				//sleep(2);
+				sleep(2);
 				//free(name);
 				write(newfd, "\t\t\t\tMain Menu\n\n1. create <username (char)>\n2. serve <username (char)>\n3. quit\n", 82);
 				continue;
@@ -257,9 +252,9 @@ void* client_handler(void* fd)
 			if(name_check == 1)
 			{
 				printf("Name already exists\n");
-				write(newfd, "Name already exists.", 20);
+				write(newfd, "** Serve: Name already exists **", 37);
 				bzero(buffer, 255);
-				//sleep(2);
+				sleep(2);
 				//free(name);
 				write(newfd, "\t\t\t\tMain Menu\n\n1. create <username (char)>\n2. serve <username (char)>\n3. quit\n", 82);
 				continue;
@@ -292,22 +287,22 @@ void* client_handler(void* fd)
 
 			if(strlen(name) <= 0){
 				write(newfd, "** Server: enter a valid name **\n", 32);
-				//sleep(2);
+				sleep(2);
 				write(newfd, "\t\t\t\tMain Menu\n\n1. create <username (char)>\n2. serve <username (char)>\n3. quit\n", 82);
 				continue;
 
 			}
 
-			pthread_mutex_lock(&lock);
+			//pthread_mutex_lock(&lock);
 			int name_check = find_account_by_name(name);
-			pthread_mutex_unlock(&lock);
+			//pthread_mutex_unlock(&lock);
 
 			if(name_check == 1)
 			{
 				printf("Name already exists\n");
-				write(newfd, "Name already exists.", 20);
+				write(newfd, "** Serve: Name already exists **", 37);
 				bzero(buffer, 255);
-				//sleep(2);
+				sleep(2);
 				write(newfd, "\t\t\t\tMain Menu\n\n1. create <username (char)>\n2. serve <username (char)>\n3. quit\n", 82);
 				continue;
 			}
@@ -334,9 +329,9 @@ void* client_handler(void* fd)
 			char* name = &buffer[6];
 			strcpy(storeName, name);
 
-			pthread_mutex_lock(&lock);
+			//pthread_mutex_lock(&lock);
 			int name_check = find_account_by_name(storeName);
-			pthread_mutex_unlock(&lock);
+			//pthread_mutex_unlock(&lock);
 
 			if(name_check == 0)
 			{
@@ -478,12 +473,11 @@ void* client_handler(void* fd)
 
 
 void disconnected(){
-	//printAccts();
 	char buffer[255];
 	bzero(buffer, 255);
 
 	printf("Server is disconnecting...\n");
-	free(head);
+	
 	struct socket* tempsock;
 	tempsock = sockhead;
 
@@ -492,14 +486,11 @@ void disconnected(){
 		//printf("sockhead: %d\n", sockhead->fd);
 		send(tempsock->fd, "** Server disconnected **",25,0);
 		bzero(buffer, 255);
-
 		tempsock = tempsock->next;
-
-
 	}
+
+	free(head);
 	free(sockhead);
-	// close(client_socket);
-	// close(server_socket);
 	exit(0);
 }
 
@@ -604,7 +595,6 @@ void* server_handler(void* port_num)
 
 	printf("Waiting for clients on port %d.....\n", port);
 
-	// socklen_t clilen = sizeof(client_addr);
 	
 	addr_size = sizeof their_addr;
 
@@ -619,14 +609,11 @@ void* server_handler(void* port_num)
 		}
 		inet_ntop(their_addr.ss_family, get_in_addr((struct sockaddr *)&their_addr), s, sizeof s);
         printf("server: got connection from %s\n", s);
-			//printf("Connection accepted from [%s, %d]\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
-
+		
 		struct socket* new_socket = (struct socket*)malloc(sizeof(struct socket));
 	    new_socket->fd = newsockfd;
 	    new_socket->next = sockhead;
 	    sockhead = new_socket;
-
-	    
 
 	    if(first_call == 0)
 		{
@@ -640,7 +627,8 @@ void* server_handler(void* port_num)
 
 			pthread_create(&refresh_func, NULL, set_alarm, NULL);
 		}
-		pthread_t id;
+
+		pthread_t id = (pthread_t)malloc(sizeof(pthread_t));
 		pthread_create(&id, NULL, client_handler, (void*)&newsockfd);
 
 	}

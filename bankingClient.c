@@ -1,8 +1,5 @@
 #include "bankingServer.h"
 
-
-
-int network_socket = -1;
 int stored_sock = -1;
 
 pthread_t output;

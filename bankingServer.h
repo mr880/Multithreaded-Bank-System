@@ -27,10 +27,7 @@ int listencount = 20;
 int listencount2 = 0;
 
 int first_call = 0;
-
 static int PAUSE = 0; 
-
-
 
 
 struct Account{
@@ -51,12 +48,6 @@ struct socket{
 
 struct socket* sockhead = NULL;
 
-struct _tids
-{
-	int tid;
-	struct _tids *next;
-};
-typedef struct _tids tids;
 
 
 void* client_handler(void*);
@@ -64,5 +55,22 @@ void* outputFromServer();
 void print_accounts();
 void* set_alarm();
 void* server_handler(void*);
-
+void *get_in_addr(struct sockaddr*);
+void sigchld_handler(int);
 void exit_func();
+void disconnected();
+int add_account(char*);
+void deposit(double, char*);
+double withdraw(double, char*);
+double get_current_balance(char*);
+int find_account_by_name(char*);
+int make_active(char*);
+int make_inactive(char*);
+char* trim_newline(char*);
+void* send_user_commands(void*);
+
+
+
+
+
+
