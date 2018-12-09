@@ -81,6 +81,11 @@ void *get_in_addr(struct sockaddr *sa)
 
 int main(int argc, char* argv[])
 {
+    if (argc < 3)
+    {
+	printf("** ERROR: Not enough arguments. **\n");
+    	return 1;
+    }
 
     system("clear");
     signal(SIGINT, exit_func);
@@ -89,7 +94,6 @@ int main(int argc, char* argv[])
     struct addrinfo hints, *servinfo, *p;
     int rv;
     char s[INET6_ADDRSTRLEN];
-
 
 
     memset(&hints, 0, sizeof hints);

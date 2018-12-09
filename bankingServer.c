@@ -114,7 +114,7 @@ double get_current_balance(char* name)
 	char buffer[256] = {0};
 	sprintf(buffer, "%.2f", temp->balance);
 	//send(client_socket,buffer, sizeof(buffer), 0);
-	printf("Ballance: %.2f\n", temp->balance);
+	printf("Balance: %.2f\n", temp->balance);
 	
 	return temp->balance;
 }
@@ -179,7 +179,7 @@ void print_accounts()
 	PAUSE = 1;
 	system("clear");
 	printf("\t\t\t\tBank-System\n");
-	printf("Account Name\t\tCurrent Ballance\t\tIn Service\n");
+	printf("Account Name\t\tCurrent Balance\t\tIn Service\n");
 	struct Account* temp = NULL;
 	temp = head;
 
@@ -395,8 +395,17 @@ void* client_handler(void* fd)
 				{
 					char* amount = &buffer[7];
 					float new_amount = atof(amount);
-					deposit(new_amount, storeName);
-					write(newfd, "** Server: Deposited funds **\n", 30);
+					
+					if (new_amount >= 0)
+					{
+						deposit(new_amount, storeName);
+						write(newfd, "** Server: Deposited funds **\n", 30);
+					}
+					else
+					{
+						write(newfd, "** Server: Can Not Deposit Negative Amounts **\n", 47);
+					}
+
 					bzero(buffer, 255);
 					//sleep(2);
 				}
@@ -404,18 +413,27 @@ void* client_handler(void* fd)
 				{
 					char* amount = &buffer[9];
 					float new_amount = atof(amount);
-					double newbalance = withdraw(new_amount, storeName);
 
-					if(newbalance == -1.1)
+					if (new_amount >= 0)
 					{
-						write(newfd, "** Server: Insufficient funds **\n", 33);
-						bzero(buffer, 255);
-						//sleep(2);
-						write(newfd, "\t\t\t\tServe Menu\n\n1. deposit <amount (double)>\n2. withdraw <amount (double)>\n3. query\n4. end\n5. quit\n", 124);
-						continue;			
+						double newbalance = withdraw(new_amount, storeName);
+
+						if(newbalance == -1.1)
+						{
+							write(newfd, "** Server: Insufficient funds **\n", 33);
+							bzero(buffer, 255);
+							//sleep(2);
+							write(newfd, "\t\t\t\tServe Menu\n\n1. deposit <amount (double)>\n2. withdraw <amount (double)>\n3. query\n4. end\n5. quit\n", 124);
+							continue;			
+						}
+						printf("Withdrew %f from account \"%s\"\n", new_amount, storeName );
+						write(newfd, "** Server: Withdrew funds **\n", 30);
 					}
-					printf("Withdrew %f from account \"%s\"\n", new_amount, storeName );
-					write(newfd, "** Server: Withdrew funds **\n", 30);
+					else
+					{
+						write(newfd, "** Server: Can Not Withdraw Negative Amounts **\n", 48);
+					}
+	
 					bzero(buffer, 255);
 					//sleep(2);				
 				}
